@@ -8,13 +8,20 @@ jobs:
     steps:
       - checkout
 
+      # Start local server in background
       - run:
-          name: Install dependencies
-          command: npm ci
+          name: Start local server
+          command: npx http-server . -p 8080 &
+      
+      # Ensure Cypress results folder exists
+      - run:
+          name: Ensure results folder exists
+          command: mkdir -p cypress/results
 
+      # Run Cypress tests against localhost
       - run:
-          name: Run Cypress tests (start server & run)
-          command: npm run test:cypress
+          name: Run Cypress local tests
+          command: npx cypress run --config baseUrl=http://localhost:8080 --reporter junit --reporter-options "mochaFile=cypress/results/results-local-[hash].xml,toConsole=true"
           timeout: 20m
 
       - store_artifacts:
@@ -23,7 +30,6 @@ jobs:
       - store_artifacts:
           path: cypress/screenshots
           destination: cypress-screenshots
-
       - store_test_results:
           path: cypress/results
 
@@ -34,23 +40,20 @@ jobs:
     steps:
       - checkout
 
+      # Ensure Cypress results folder exists
       - run:
-          name: Install dependencies
-          command: npm ci
+          name: Ensure results folder exists
+          command: mkdir -p cypress/results
 
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-deps-{{ checksum "package-lock.json" }}
-
+      # Run Cypress tests against live GitHub Pages site
       - run:
-          name: Run Cypress tests against GitHub Pages
+          name: Run Cypress live tests
           command: |
             if [ -z "$GH_PAGES_URL" ]; then
-              echo "Error: GH_PAGES_URL env var is not set. Set it in CircleCI project settings to your GitHub Pages URL (e.g. https://<user>.github.io/<repo>/)";
+              echo "Error: GH_PAGES_URL env var is not set. Set it in CircleCI project settings.";
               exit 1;
             fi
-            npm run cy:run:live
+            npx cypress run --config baseUrl=$GH_PAGES_URL --reporter junit --reporter-options "mochaFile=cypress/results/results-live-[hash].xml,toConsole=true"
           timeout: 20m
 
       - store_artifacts:
@@ -59,7 +62,6 @@ jobs:
       - store_artifacts:
           path: cypress/screenshots
           destination: cypress-screenshots-live
-
       - store_test_results:
           path: cypress/results
 
