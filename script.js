@@ -54,3 +54,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   setInterval(createPetal, 2100);
   for (let i = 0; i < 6; i++) createPetal();
 });
+// build
