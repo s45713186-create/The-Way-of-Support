@@ -1,46 +1,6 @@
 version: 2.1
 
 jobs:
-  cypress-local:
-    docker:
-      - image: cypress/included:15.3.0
-    working_directory: ~/repo
-    steps:
-      - checkout
-
-      # Ensure results folder exists
-      - run:
-          name: Ensure results folder exists
-          command: mkdir -p cypress/results
-
-      # Install wait-on to wait for server
-      - run:
-          name: Install wait-on
-          command: npm install -g wait-on
-
-      # Start local server and wait until ready
-      - run:
-          name: Start local server and wait
-          command: |
-            npx http-server . -p 8080 &
-            npx wait-on http://localhost:8080
-
-      # Run Cypress tests against localhost
-      - run:
-          name: Run Cypress local tests
-          command: npx cypress run --config baseUrl=http://localhost:8080 --reporter junit --reporter-options "mochaFile=cypress/results/results-local-[hash].xml,toConsole=true"
-          timeout: 20m
-
-      # Store artifacts and test results
-      - store_artifacts:
-          path: cypress/videos
-          destination: cypress-videos
-      - store_artifacts:
-          path: cypress/screenshots
-          destination: cypress-screenshots
-      - store_test_results:
-          path: cypress/results
-
   cypress-live:
     docker:
       - image: cypress/included:15.3.0
@@ -74,7 +34,5 @@ jobs:
 workflows:
   build-and-test:
     jobs:
-      - cypress-local
       - cypress-live:
-          requires:
-            - cypress-local
+
