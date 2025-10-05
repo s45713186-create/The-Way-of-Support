@@ -3,20 +3,31 @@ version: 2.1
 jobs:
   cypress-local:
     docker:
-      - image: cypress/included:12.17.0
+      - image: cypress/included:15.3.0
     working_directory: ~/repo
     steps:
       - checkout
 
-      # Start local server in background
-      - run:
-          name: Start local server
-          command: npx http-server . -p 8080 &
-      
-      # Ensure Cypress results folder exists
+      # Ensure results folder exists
       - run:
           name: Ensure results folder exists
           command: mkdir -p cypress/results
+
+      # Start local server and wait until it responds
+      - run:
+          name: Start local server and wait
+          command: |
+            npx http-server . -p 8080 &
+            echo "Waiting for server to be ready..."
+            timeout=30
+            until curl -s http://localhost:8080 > /dev/null || [ $timeout -eq 0 ]; do
+              sleep 1
+              timeout=$((timeout-1))
+            done
+            if [ $timeout -eq 0 ]; then
+              echo "Server did not start in time"
+              exit 1
+            fi
 
       # Run Cypress tests against localhost
       - run:
@@ -24,6 +35,7 @@ jobs:
           command: npx cypress run --config baseUrl=http://localhost:8080 --reporter junit --reporter-options "mochaFile=cypress/results/results-local-[hash].xml,toConsole=true"
           timeout: 20m
 
+      # Store artifacts and test results
       - store_artifacts:
           path: cypress/videos
           destination: cypress-videos
@@ -35,17 +47,15 @@ jobs:
 
   cypress-live:
     docker:
-      - image: cypress/included:12.17.0
+      - image: cypress/included:15.3.0
     working_directory: ~/repo
     steps:
       - checkout
 
-      # Ensure Cypress results folder exists
       - run:
           name: Ensure results folder exists
           command: mkdir -p cypress/results
 
-      # Run Cypress tests against live GitHub Pages site
       - run:
           name: Run Cypress live tests
           command: |
