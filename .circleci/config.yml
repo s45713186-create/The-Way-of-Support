@@ -34,5 +34,5 @@ jobs:
 workflows:
   build-and-test:
     jobs:
-      - cypress-live:
+      - cypress-live
 
