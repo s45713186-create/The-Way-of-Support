@@ -1,58 +1,60 @@
 describe('Quote generator - live site', () => {
-  const clickDelay = 400; // for JS fade animation
+  const clickDelay = 400; // matches your fade animation
 
   beforeEach(() => {
-    // Visit the live site using baseUrl from CircleCI env
     cy.visit('/');
   });
 
   it('shows a quote on load', () => {
-    cy.get('#quote.visible', { timeout: 12000 }) // wait for fade-in
+    cy.get('#quote.visible', { timeout: 12000 })
       .should('be.visible')
       .invoke('text')
-      .should((text) => {
-        expect(text.trim()).to.not.equal('');
-      });
+      .should((text) => expect(text.trim()).to.not.equal(''));
   });
 
   it('advances to the next quote on button click', () => {
     let firstQuote;
-
     cy.get('#quote.visible', { timeout: 12000 })
       .invoke('text')
-      .then((text) => {
-        firstQuote = text.trim();
-      });
+      .then((t) => { firstQuote = t.trim(); });
 
     cy.get('#new-quote').click();
     cy.wait(clickDelay);
 
     cy.get('#quote.visible')
       .invoke('text')
-      .should((text) => {
-        expect(text.trim()).to.not.eq(firstQuote);
-      });
+      .should((t) => expect(t.trim()).to.not.eq(firstQuote));
   });
 
-  it('loops back after cycling through all quotes', () => {
-    const maxClicks = 50; // arbitrarily large to ensure full cycle
-    let initialQuote;
+  it('loops back after cycling through all quotes (robust)', () => {
+    // 1) get the number of quotes from the live JSON
+    cy.request(`${Cypress.config('baseUrl')}/support_quotes.json`).then((res) => {
+      const totalQuotes = Array.isArray(res.body) ? res.body.length : 0;
+      expect(totalQuotes).to.be.greaterThan(0);
 
-    cy.get('#quote.visible', { timeout: 12000 })
-      .invoke('text')
-      .then((text) => {
-        initialQuote = text.trim();
-      });
+      // 2) capture the initial visible quote (wait for it)
+      cy.get('#quote.visible', { timeout: 12000 })
+        .invoke('text')
+        .then((initial) => {
+          const initialQuote = initial.trim();
 
-    for (let i = 0; i < maxClicks; i++) {
-      cy.get('#new-quote').click();
-      cy.wait(clickDelay); // wait for fade-in
-    }
+          // 3) click exactly totalQuotes times in a Cypress-safe recursive chain
+          const clickTimes = (n) => {
+            if (n <= 0) return cy.wrap(null);
+            return cy.get('#new-quote').click()
+              .wait(clickDelay)
+              .then(() => clickTimes(n - 1));
+          };
 
-    cy.get('#quote.visible')
-      .invoke('text')
-      .should((text) => {
-        expect(text.trim()).to.eq(initialQuote);
-      });
+          // run clicks, then assert we returned to the initial quote
+          clickTimes(totalQuotes).then(() => {
+            cy.get('#quote.visible', { timeout: 12000 })
+              .invoke('text')
+              .should((finalText) => {
+                expect(finalText.trim()).to.eq(initialQuote);
+              });
+          });
+        });
+    });
   });
 });
