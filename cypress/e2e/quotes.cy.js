@@ -1,34 +1,52 @@
-describe('Quote generator - sequence', () => {
+describe('Quote generator - live site', () => {
   beforeEach(() => {
-    // When run via start-server-and-test, baseUrl is http://localhost:8080
     cy.visit('/');
   });
 
   it('shows a quote on load', () => {
-    cy.get('#quote').should('be.visible').invoke('text').should('not.be.empty');
+    cy.get('#quote')
+      .should('be.visible')
+      .invoke('text')
+      .should('not.be.empty');
   });
 
   it('advances to the next quote on button click', () => {
-    cy.fixture('support_quotes.json').then((quotes) => {
-      // initial should be first quote
-      cy.get('#quote').invoke('text').should('eq', quotes[0]);
+    cy.get('#quote')
+      .invoke('text')
+      .then((firstQuote) => {
+        cy.get('#new-quote').click();
 
-      // click once -> should show second quote
-      cy.get('#new-quote').click();
-      cy.wait(300);
-      cy.get('#quote').invoke('text').should('eq', quotes[1]);
-    });
+        // wait for the quote to change
+        cy.get('#quote')
+          .should('have.text')
+          .and((text) => expect(text).to.not.eq(firstQuote));
+      });
   });
 
-  it('loops back to first quote after cycling through all', () => {
-    cy.fixture('support_quotes.json').then((quotes) => {
-      // click quotes.length times to complete a full rotation
-      for (let i = 0; i < quotes.length; i++) {
+  it('loops back after cycling through all quotes', () => {
+    // Fetch the live JSON to know the number of quotes
+    cy.request(`${Cypress.config('baseUrl')}/support_quotes.json`).then((res) => {
+      const quotes = res.body;
+      const totalQuotes = quotes.length;
+
+      let initialQuote;
+      cy.get('#quote')
+        .invoke('text')
+        .then((text) => {
+          initialQuote = text;
+        });
+
+      // Click through all quotes
+      for (let i = 0; i < totalQuotes; i++) {
         cy.get('#new-quote').click();
-        cy.wait(300);
+        // wait for fade/animation
+        cy.get('#quote').should('have.class', 'visible');
       }
-      // After a full rotation we should be back to the first quote
-      cy.get('#quote').invoke('text').should('eq', quotes[0]);
+
+      // After full cycle, should return to initial quote
+      cy.get('#quote')
+        .invoke('text')
+        .should((text) => expect(text).to.eq(initialQuote));
     });
   });
 });

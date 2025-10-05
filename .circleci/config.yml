@@ -8,10 +8,12 @@ jobs:
     steps:
       - checkout
 
+      # Ensure results folder exists
       - run:
-          name: Ensure results folder exists
+          name: Ensure Cypress results folder exists
           command: mkdir -p cypress/results
 
+      # Run live Cypress tests
       - run:
           name: Run Cypress live tests
           command: |
@@ -19,15 +21,21 @@ jobs:
               echo "Error: GH_PAGES_URL env var is not set. Set it in CircleCI project settings.";
               exit 1;
             fi
-            npx cypress run --config baseUrl=$GH_PAGES_URL --reporter junit --reporter-options "mochaFile=cypress/results/results-live-[hash].xml,toConsole=true"
+            npx cypress run \
+              --config baseUrl=$GH_PAGES_URL \
+              --reporter junit \
+              --reporter-options "mochaFile=cypress/results/results-live-[hash].xml,toConsole=true"
           timeout: 20m
 
+      # Store artifacts (videos/screenshots)
       - store_artifacts:
           path: cypress/videos
           destination: cypress-videos-live
       - store_artifacts:
           path: cypress/screenshots
           destination: cypress-screenshots-live
+
+      # Store test results for CircleCI test summary
       - store_test_results:
           path: cypress/results
 
@@ -35,4 +43,3 @@ workflows:
   build-and-test:
     jobs:
       - cypress-live
-
