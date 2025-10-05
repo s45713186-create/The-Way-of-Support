@@ -13,21 +13,17 @@ jobs:
           name: Ensure results folder exists
           command: mkdir -p cypress/results
 
-      # Start local server and wait until it responds
+      # Install wait-on to wait for server
+      - run:
+          name: Install wait-on
+          command: npm install -g wait-on
+
+      # Start local server and wait until ready
       - run:
           name: Start local server and wait
           command: |
             npx http-server . -p 8080 &
-            echo "Waiting for server to be ready..."
-            timeout=30
-            until curl -s http://localhost:8080 > /dev/null || [ $timeout -eq 0 ]; do
-              sleep 1
-              timeout=$((timeout-1))
-            done
-            if [ $timeout -eq 0 ]; then
-              echo "Server did not start in time"
-              exit 1
-            fi
+            npx wait-on http://localhost:8080
 
       # Run Cypress tests against localhost
       - run:

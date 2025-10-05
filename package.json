@@ -4,13 +4,12 @@
   "private": true,
   "scripts": {
     "start": "http-server . -p 8080",
-    "cy:run": "cypress run --config baseUrl=http://localhost:8080 --reporter junit --reporter-options \"mochaFile=cypress/results/results-[hash].xml,toConsole=true\"",
-    "test:cypress": "start-server-and-test start http://localhost:8080 cy:run",
-    "cy:run:live": "cypress run --config baseUrl=$GH_PAGES_URL --reporter junit --reporter-options \"mochaFile=cypress/results/results-live-[hash].xml,toConsole=true\""
+    "cy:run-local": "npx wait-on http://localhost:8080 && npx cypress run --config baseUrl=http://localhost:8080",
+    "cy:run-live": "npx cypress run --config baseUrl=$GH_PAGES_URL"
   },
   "devDependencies": {
-    "cypress": "^12.17.0",
+    "cypress": "^15.3.0",
     "http-server": "^14.1.1",
-    "start-server-and-test": "^1.14.0"
+    "wait-on": "^7.0.1"
   }
 }
